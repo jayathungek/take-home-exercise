@@ -59,7 +59,7 @@ def get_gc_stats(sequence: str, valid_nucleobases: Union[List, None] = None) -> 
     return gc_stats
 
 
-def get_dinucleotide_freqs(sequence: str) -> Dict:
+def get_dinucleotide_freqs(sequence: str, valid_bases: List) -> Dict:
     """
     Finds the frequency of all 2-mers in a single DNA sequence
     Args:
@@ -70,8 +70,8 @@ def get_dinucleotide_freqs(sequence: str) -> Dict:
     """
     valid_dinucleotides = [
         i + j
-        for i in SETTINGS["valid_nucleobases"]
-        for j in SETTINGS["valid_nucleobases"]
+        for i in valid_bases
+        for j in valid_bases
     ]
     dinucleotide_counts = {d: 0 for d in valid_dinucleotides}
     dinucleotides = substrings(sequence, win_len=2, hop_len=2)
@@ -85,7 +85,7 @@ def get_dinucleotide_freqs(sequence: str) -> Dict:
     return dinucleotide_frac
 
 
-def find_invalid_bases(sequence: str) -> Dict:
+def find_invalid_bases(sequence: str, valid_bases: List) -> Dict:
     """
     Finds the positions of all invalid bases in a single DNA sequences,
     as defined in the settings.
@@ -97,7 +97,7 @@ def find_invalid_bases(sequence: str) -> Dict:
     """
     invalid_dict: Dict = {"num_invalid": 0, "invalid_bases": []}
     for pos, base in enumerate(sequence):
-        if base not in SETTINGS["valid_nucleobases"]:
+        if base not in  valid_bases:
             invalid_dict["num_invalid"] += 1
             invalid_dict["invalid_bases"].append({"pos": pos, "base": base})
     return invalid_dict
@@ -132,7 +132,7 @@ def find_palindromes(sequence: str, min_substring_len: int, min_bases: int) -> D
         while start >= 0 and end < len(sequence) and sequence[start] == sequence[end]:
             substring = sequence[start : end + 1]
             if (
-                len(substring) > min_substring_len
+                len(substring) >= min_substring_len
                 and len(Counter(substring)) >= min_bases
             ):
                 palindrome_stats["num_palindromes"] += 1
@@ -310,16 +310,52 @@ def reduce_avg(stats: List) -> Dict:
 
 def parse_args(args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="main")
-    parser.add_argument("seq_file", help="Path to JSON file containing DNA sequences")
-    parser.add_argument("-s", "--settings-file", default="./settings.json", type=str)
-    parser.add_argument("-p", "--per_seq_k_mer", action="store_true")
-    parser.add_argument("-o", "--out-dir", default="./results", type=str)
+    parser.add_argument(
+        "-t",
+        "--test",
+        action="store_true",
+        help="If set, runs tests as defined in `test_main.py` and ignores all other arguments.",
+    )
+    parser.add_argument("seq_file", nargs='?', default=None, help="Path to a JSON file containing DNA sequences")
+    parser.add_argument(
+        "-s",
+        "--settings-file",
+        default="./settings.json",
+        type=str,
+        help="Path to a JSON file containing parameters for the analysis run. Defaults to `./settings.json`.",
+    )
+    parser.add_argument(
+        "-p",
+        "--per_seq_k_mer",
+        action="store_true",
+        help="Parameter used in the top-N k-mer analysis. If set, calculates top N k-mers for each DNA sequence separately",
+    )
+    parser.add_argument(
+        "-o",
+        "--out-dir",
+        default="./results",
+        type=str,
+        help="Directory to store the results of analyses. Defaults to `./results`.",
+    )
     parsed = parser.parse_args(args)
+    if not parsed.test and parsed.seq_file is None:
+        parser.error("seq_file is required unless --test is set")
     return parsed
 
 
 if __name__ == "__main__":
     run_args = parse_args(sys.argv[1:])
+
+    # Check if user has requested unittesting, and exit after running them
+    if run_args.test:
+        import unittest
+        test_loader = unittest.TestLoader()
+        test_suite = test_loader.discover('.', pattern='test_main.py')
+
+        test_runner = unittest.TextTestRunner(verbosity=2)
+        test_runner.run(test_suite)
+        exit(0)
+        
     SETTINGS = load_json(run_args.settings_file)
     seq_object = load_json(run_args.seq_file)
 
@@ -379,7 +415,7 @@ if __name__ == "__main__":
 
     # Dinucleotide frequencies
     print("Calculating dinucleotide stats...", end='', flush=True)
-    all_dinucleotide_stats = apply_foreach(seq_object, get_dinucleotide_freqs)
+    all_dinucleotide_stats = apply_foreach(seq_object, get_dinucleotide_freqs, valid_bases=SETTINGS["valid_nucleobases"])
     dnt_dict = {
         "all_dnt_stats": all_dinucleotide_stats,
         "avg_dnt": reduce_avg(all_dinucleotide_stats),
@@ -389,7 +425,7 @@ if __name__ == "__main__":
 
     # Sequences with errors in them, maybe? Assuming only A, C, G, T are valid bases
     print("Searching for invalid sequences...", end='', flush=True)
-    all_invalid_stats = apply_foreach(seq_object, find_invalid_bases)
+    all_invalid_stats = apply_foreach(seq_object, find_invalid_bases, valid_bases=SETTINGS["valid_nucleobases"])
     invalid_dict: Dict = {}
     for i, stat in enumerate(all_invalid_stats):
         if stat["num_invalid"] > 0:
