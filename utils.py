@@ -44,7 +44,7 @@ def seq_to_img(sequences: List, colours: List, bases: List) -> np.ndarray:
         bases (List): Valid nucleobases
 
     Returns:
-        np.ndarray: _description_
+        np.ndarray: The NxLx3 array which can be plotted
     """
     colour_lookup = {base: colour for base, colour in zip(bases, colours)}
 
@@ -117,6 +117,8 @@ def load_json(path: str) -> Dict:
     Convenience function for loading JSON
     Args:
         path (str): Path to JSON file
+    Returns:
+        Dict: The loaded JSON object
     """
     with open(path) as fh:
         loaded = json.load(fh)
