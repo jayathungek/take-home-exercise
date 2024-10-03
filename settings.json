@@ -1,0 +1,7 @@
+{
+    "valid_nucleobases": ["A", "C", "G", "T"],
+    "min_basepair_len": 20,
+    "min_bases": 3,
+    "k_values": [3, 4, 5],
+    "top_n": 5
+}

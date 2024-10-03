@@ -1,5 +1,6 @@
+results/*
+!results/__init__.py
 .DS_Store
 .vscode
 .mypy_cache
-results
 __pycache__
