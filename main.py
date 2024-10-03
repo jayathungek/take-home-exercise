@@ -1,7 +1,7 @@
 import sys
 import argparse
 from collections import Counter
-from typing import List, Dict, Callable, Generator, Union, Tuple
+from typing import List, Dict, Callable, Generator, Union, Tuple, Any
 
 from utils import load_json, save_json, plot_dna_dataset, plot_dnt_confmat
 
@@ -416,7 +416,7 @@ if __name__ == "__main__":
     # Dinucleotide frequencies
     print("Calculating dinucleotide stats...", end='', flush=True)
     all_dinucleotide_stats = apply_foreach(seq_object, get_dinucleotide_freqs, valid_bases=SETTINGS["valid_nucleobases"])
-    dnt_dict = {
+    dnt_dict: Dict[str, Any] = {
         "all_dnt_stats": all_dinucleotide_stats,
         "avg_dnt": reduce_avg(all_dinucleotide_stats),
     }
@@ -438,7 +438,7 @@ if __name__ == "__main__":
     print("done")
 
     # Generate graphs
-    avg_dnt = dnt_dict["avg_dnt"]
+    avg_dnt: Dict = dnt_dict["avg_dnt"]
     print("Creating dinucleotide frequency matrix...", end='', flush=True)
     plot_dnt_confmat(
         avg_dnt,
