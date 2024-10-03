@@ -81,7 +81,6 @@ def plot_dna_dataset(seq_obj: Dict, bases: List, outfile: str) -> None:
     cbar = plt.colorbar(ticks=np.arange(len(bases)), label="Nucleobases")
     cbar.ax.set_yticklabels(bases)
     plt.savefig(outfile, dpi=300, bbox_inches="tight", format="png")
-    plt.show()
     plt.cla()
 
 
